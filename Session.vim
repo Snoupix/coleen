@@ -13,15 +13,16 @@ if &shortmess =~ 'A'
 else
   set shortmess=aoO
 endif
-badd +18 main.go
-badd +3 README.md
+badd +21 main.go
+badd +7 README.md
 badd +5 Justfile
-badd +7 librustbee.h
+badd +8 librustbee.h
+badd +1 .gitignore
 argglobal
 %argdel
 edit main.go
 argglobal
-balt librustbee.h
+balt README.md
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -32,12 +33,12 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 15 - ((10 * winheight(0) + 27) / 55)
+let s:l = 21 - ((20 * winheight(0) + 27) / 55)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 15
-normal! 095|
+keepjumps 21
+normal! 020|
 tabnext 1
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0 && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf
