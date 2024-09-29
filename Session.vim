@@ -16,7 +16,6 @@ endif
 badd +21 main.go
 badd +7 README.md
 badd +5 Justfile
-badd +8 librustbee.h
 badd +1 .gitignore
 argglobal
 %argdel
