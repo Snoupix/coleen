@@ -1,17 +1,23 @@
 package main
 
 /*
-#cgo LDFLAGS: -L. -lrustbee_common
+#cgo LDFLAGS: -L. -lrustbee
 #include "librustbee.h"
 */
 import "C"
 
 import (
+	"flag"
 	"fmt"
+	"image"
+	"image/draw"
+    _ "image/jpeg"
 	"os"
 	"strconv"
 	"time"
 	"unsafe"
+
+	// "github.com/kbinani/screenshot"
 )
 
 var ADDRS [2][6]C.uint8_t = [2][6]C.uint8_t{
@@ -20,6 +26,50 @@ var ADDRS [2][6]C.uint8_t = [2][6]C.uint8_t{
 }
 
 func main() {
+    x := flag.Uint("x", 0, "Unsigned integer that vertically splits the screen")
+    y := flag.Uint("y", 0, "Unsigned integer that horizontally splits the screen")
+    interval := flag.Uint("interval", 0, "Interval in milliseconds where the screen colors are taken")
+    file := flag.String("file", "", "Screenshot file to test")
+    flag.Parse()
+
+    if *x == 0 || *y == 0 || *interval == 0 {
+        fmt.Println("One or multiple flag is not set")
+        os.Exit(1)
+    }
+
+    if file == nil || *file == "" {
+        return
+    }
+
+    // _img, err := screenshot.CaptureDisplay(0)
+    // if err != nil {
+    //     panic(err)
+    // }
+    // img := image.Image(_img)
+
+    f, err := os.Open(*file)
+	if err != nil {
+        panic(err)
+	}
+	defer f.Close()
+
+	img, _, err := image.Decode(f)
+	if err != nil {
+        panic(err)
+	}
+
+	rgbaImage, ok := img.(*image.RGBA)
+	if !ok {
+		// Convert to RGBA if not already RGBA
+		rect := img.Bounds()
+		rgbaImage = image.NewRGBA(rect)
+		draw.Draw(rgbaImage, rect, img, rect.Min, draw.Src)
+	}
+
+    // fmt.Println(img)
+    // fmt.Println(rgbaImage)
+    return
+
     power_value, err := strconv.ParseUint(os.Args[1], 10, 8)
     if err != nil {
         panic(err)
