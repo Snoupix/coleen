@@ -1,2 +1,4 @@
 *.so
 *.h
+.zig-cache/
+zig-out/
