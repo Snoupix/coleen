@@ -16,13 +16,16 @@ endif
 badd +3 README.md
 badd +4 .gitignore
 badd +2 librustbee.h
-badd +25 src/main.zig
-badd +8 build.zig
+badd +27 src/main.zig
+badd +12 build.zig
+badd +1 .ignore
+badd +526 ~/work/coleen/.zig-cache/o/ad9e5e8b1a879c75f572dda6e701701c/cimport.zig
+badd +40 deps/screen_capture_lite/include/ScreenCapture_C_API.h
 argglobal
 %argdel
 edit src/main.zig
 argglobal
-balt README.md
+balt build.zig
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -33,12 +36,12 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 25 - ((13 * winheight(0) + 31) / 63)
+let s:l = 27 - ((26 * winheight(0) + 31) / 63)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 25
-normal! 0
+keepjumps 27
+normal! 023|
 tabnext 1
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0 && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf
@@ -51,7 +54,6 @@ if filereadable(s:sx)
   exe "source " . fnameescape(s:sx)
 endif
 let &g:so = s:so_save | let &g:siso = s:siso_save
-nohlsearch
 doautoall SessionLoadPost
 unlet SessionLoad
 " vim: set ft=vim :
