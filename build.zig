@@ -43,6 +43,8 @@ pub fn build(b: *std.Build) !void {
 
     b.installArtifact(exe);
 
+    // Just know that running the app with `zig build run` will not handle
+    // SIGINT via CTRL + C so it will not gracefully shutdown in that case
     const run_cmd = b.addRunArtifact(exe);
 
     run_cmd.step.dependOn(b.getInstallStep());
