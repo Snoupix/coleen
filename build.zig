@@ -13,6 +13,8 @@ pub fn build(b: *std.Build) !void {
         break :blk compile_screen_capture_lite(b);
     };
 
+    const clap = b.dependency("clap", .{});
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .Debug });
 
@@ -22,6 +24,8 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
+
+    exe.root_module.addImport("clap", clap.module("clap"));
 
     if (compile_step) |step| {
         exe.step.dependOn(step);

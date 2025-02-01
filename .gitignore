@@ -2,3 +2,5 @@
 *.h
 .zig-cache/
 zig-out/
+*.vim
+.ignore
