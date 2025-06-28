@@ -35,6 +35,7 @@ var divided_by: u8 = 2;
 var interval: usize = 3000;
 var enable_http_server = false;
 var http_server_addr = .{ .ipv4 = [4]u8{ 127, 0, 0, 1 }, .port = 8081 };
+var handle_lights = true;
 var app_is_running = true;
 var state: State = .{};
 
@@ -47,6 +48,7 @@ pub fn main() !void {
         \\-x <u8>                Unsigned integer that vertically splits the screen. Between 1 and 8.
         \\-i, --interval <usize> Interval in ms at which the lights are changed (and screen capture taken).
         \\-s, --http <string>    If specified, it will also spawn a HTTP server that serves at the specified address (format: "ipv4:port"). It will return the current light state, e.g. splitted by 2: "r g b r g b 0 ...".
+        \\-d, --dont             If specified, it won't handle your Hue devices, only process screen colors, usually wanted when specifying the http address to handle the devices update yourself or debug the colors
     );
 
     var diag = clap.Diagnostic{};
@@ -76,6 +78,13 @@ pub fn main() !void {
         // TODO: Parse
     }
 
+    if (res.args.dont != 0) {
+        if (enable_http_server == false) {
+            std.log.warn("Be aware that running the app without the HTTP server and without the Lights handle is kinda useless.", .{});
+        }
+        handle_lights = false;
+    }
+
     assert(divided_by >= MIN_DIVIDED_BY);
     assert(divided_by <= MAX_DIVIDED_BY);
 
@@ -102,19 +111,29 @@ pub fn main() !void {
         server_thread.detach();
     }
 
-    var devices = try Devices.init();
-    defer devices.deinit();
+    if (handle_lights) {
+        var devices = try Devices.init();
+        defer devices.deinit();
 
-    while (app_is_running) {
-        // Don't need to aquire the lock to read
-        // + Avoids deadlock because the sigint action
-        // is on the same thread and would cause a deadlock
-        if (state.data == null) {
-            continue;
+        while (app_is_running) {
+            // Don't need to aquire the lock to read
+            // + Avoids deadlock because the sigint action
+            // is on the same thread and would cause a deadlock
+            if (state.data == null) {
+                continue;
+            }
+
+            try devices.set_color_rgb(&state.data.?.*);
+
+            std.time.sleep(std.time.ns_per_ms * interval);
         }
 
-        try devices.set_color_rgb(&state.data.?.*);
+        C.SCL_PauseCapturing(frame_grabber);
 
+        return;
+    }
+
+    while (app_is_running) {
         std.time.sleep(std.time.ns_per_ms * interval);
     }
 
