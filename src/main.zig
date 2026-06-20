@@ -17,7 +17,10 @@ const Devices = _d.Devices;
 const DeviceError = _d.DeviceError;
 const ADDR_LEN = _d.ADDR_LEN;
 
-pub const State = struct { mux: std.Thread.Mutex = .{}, data: ?*[MAX_DIVIDED_BY][3]u8 = null };
+pub const State = struct {
+    mux: std.Thread.Mutex = .{},
+    data: ?*[MAX_DIVIDED_BY][3]u8 = null
+};
 
 pub const MAX_DIVIDED_BY = 8;
 pub const MIN_DIVIDED_BY = 1;
@@ -25,11 +28,14 @@ pub const MIN_DIVIDED_BY = 1;
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 pub const alloc = gpa.allocator();
 
-// Reorder lamp address if needed
+// Reorder light addresses if needed
 pub const addrs: [2][ADDR_LEN]u8 = [_][ADDR_LEN]u8{
     [_]u8{ 0xEC, 0x27, 0xA7, 0xD6, 0x5A, 0x9C },
     [_]u8{ 0xE8, 0xD4, 0xEA, 0xC4, 0x62, 0x00 },
 };
+
+var stderr_buf: [@sizeOf(usize)]u8 = undefined;
+var stderr = std.fs.File.stderr().writer(&stderr_buf);
 
 var divided_by: u8 = 2;
 var interval: usize = 3000;
@@ -56,13 +62,13 @@ pub fn main() !void {
         .diagnostic = &diag,
         .allocator = alloc,
     }) catch |err| {
-        diag.report(std.io.getStdErr().writer(), err) catch {};
+        diag.report(&stderr.interface, err) catch {};
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
+        return clap.help(&stderr.interface, clap.Help, &params, .{});
     }
 
     if (res.args.x) |n| {
@@ -100,11 +106,11 @@ pub fn main() !void {
 
     const sigaction: std.posix.Sigaction = .{
         .handler = .{ .handler = handle_sigint },
-        .mask = std.os.linux.empty_sigset,
+        .mask = std.os.linux.sigemptyset() ** 16,
         .flags = 0,
     };
 
-    try std.posix.sigaction(std.posix.SIG.INT, &sigaction, null);
+    std.posix.sigaction(std.posix.SIG.INT, &sigaction, null);
 
     if (enable_http_server) {
         const server_thread = try std.Thread.spawn(.{}, http.run_server, .{ &state, &alloc, http_server_addr.ipv4, http_server_addr.port });
@@ -125,7 +131,7 @@ pub fn main() !void {
 
             try devices.set_color_rgb(&state.data.?.*);
 
-            std.time.sleep(std.time.ns_per_ms * interval);
+            std.Thread.sleep(std.time.ns_per_ms * interval);
         }
 
         C.SCL_PauseCapturing(frame_grabber);
@@ -134,13 +140,13 @@ pub fn main() !void {
     }
 
     while (app_is_running) {
-        std.time.sleep(std.time.ns_per_ms * interval);
+        std.Thread.sleep(std.time.ns_per_ms * interval);
     }
 
     C.SCL_PauseCapturing(frame_grabber);
 }
 
-fn handle_sigint(_: i32) callconv(.C) void {
+fn handle_sigint(_: i32) callconv(.c) void {
     print("\nExiting gracefully...\n", .{});
 
     state.mux.lock();
@@ -154,7 +160,7 @@ fn handle_sigint(_: i32) callconv(.C) void {
     app_is_running = false;
 }
 
-fn on_new_frame(img: C.SCL_ImageRefConst, _: C.SCL_MonitorRefConst) callconv(.C) c_int {
+fn on_new_frame(img: C.SCL_ImageRefConst, _: C.SCL_MonitorRefConst) callconv(.c) c_int {
     if (!app_is_running) return 0;
 
     const bytes: [*]const u8 = @ptrCast(img);
@@ -199,6 +205,8 @@ fn on_new_frame(img: C.SCL_ImageRefConst, _: C.SCL_MonitorRefConst) callconv(.C)
 
         sections[i] = most_common_color;
     }
+
+    print("{any}\n", .{state.data.?.*});
 
     return 0;
 }

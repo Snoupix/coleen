@@ -6,6 +6,8 @@ const fs = std.fs;
 const cwd = fs.cwd();
 
 pub fn build(b: *std.Build) !void {
+    fs.Dir.makeDir(fs.cwd(), "deps/rustbee") catch {};
+
     try fs.Dir.copyFile(cwd, "../rustbee/rustbee-common/librustbee.h", cwd, "deps/rustbee/librustbee.h", .{});
     try fs.Dir.copyFile(cwd, "../rustbee/rustbee-common/target/release/librustbee_common.so", cwd, "deps/rustbee/librustbee.so", .{});
 
@@ -20,9 +22,11 @@ pub fn build(b: *std.Build) !void {
 
     const exe = b.addExecutable(.{
         .name = "coleen",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     exe.root_module.addImport("clap", clap.module("clap"));
@@ -70,6 +74,7 @@ fn compile_screen_capture_lite(b: *std.Build) *Step {
         "cmake",
         "-B",
         build_dir,
+        "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
     });
 
     {
